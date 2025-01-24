@@ -15,6 +15,24 @@ tags:
     description: Operations about user
 paths:
   /todo:
+    get:
+      tags:
+        - todo
+      summary: Get all TODO tasks
+      description: Get all TODO tasks
+      operationId: getAllTODOTasks
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/TODOs'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TODOs'
+        '501':
+          description: Not implemented
     post:
       tags:
         - todo
@@ -40,18 +58,7 @@ paths:
             - 'write:pets'
             - 'read:pets'
       requestBody:
-        description: Create a new TODO task
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TODO'
-          application/xml:
-            schema:
-              $ref: '#/components/schemas/TODO'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/TODO'
+        $ref: '#/components/requestBodies/TODO'
   '/user/{username}':
     get:
       tags:
@@ -137,7 +144,7 @@ components:
     TODO:
       required:
         - name
-        - photoUrls
+        - description
       properties:
         id:
           type: integer
@@ -152,6 +159,10 @@ components:
       xml:
         name: todo
       type: object
+    TODOs:
+      type: array
+      items:
+        $ref: '#/components/schemas/TODO'
     User:
       required:
         - name
@@ -167,6 +178,10 @@ components:
       xml:
         name: user
       type: object
+    Users:
+      type: array
+      items:
+        $ref: '#/components/schemas/User'
     ApiResponse:
       properties:
         code:
@@ -188,7 +203,7 @@ components:
         application/xml:
           schema:
             $ref: '#/components/schemas/TODO'
-      description: Pet object that needs to be added to the store
+      description: TODO object
     UserArray:
       content:
         application/json:

@@ -24,6 +24,9 @@ import (
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Get all TODO tasks
+	// (GET /todo)
+	GetAllTODOTasks(w http.ResponseWriter, r *http.Request)
 	// Create a new TODO task
 	// (POST /todo)
 	CreateTODO(w http.ResponseWriter, r *http.Request)
@@ -41,6 +44,12 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// Get all TODO tasks
+// (GET /todo)
+func (_ Unimplemented) GetAllTODOTasks(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // Create a new TODO task
 // (POST /todo)
@@ -74,6 +83,20 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetAllTODOTasks operation middleware
+func (siw *ServerInterfaceWrapper) GetAllTODOTasks(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAllTODOTasks(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // CreateTODO operation middleware
 func (siw *ServerInterfaceWrapper) CreateTODO(w http.ResponseWriter, r *http.Request) {
@@ -284,6 +307,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/todo", wrapper.GetAllTODOTasks)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/todo", wrapper.CreateTODO)
 	})
 	r.Group(func(r chi.Router) {
@@ -299,10 +325,52 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	return r
 }
 
+type GetAllTODOTasksRequestObject struct {
+}
+
+type GetAllTODOTasksResponseObject interface {
+	VisitGetAllTODOTasksResponse(w http.ResponseWriter) error
+}
+
+type GetAllTODOTasks200JSONResponse TODOs
+
+func (response GetAllTODOTasks200JSONResponse) VisitGetAllTODOTasksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAllTODOTasks200ApplicationXMLResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response GetAllTODOTasks200ApplicationXMLResponse) VisitGetAllTODOTasksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/xml")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type GetAllTODOTasks501Response struct {
+}
+
+func (response GetAllTODOTasks501Response) VisitGetAllTODOTasksResponse(w http.ResponseWriter) error {
+	w.WriteHeader(501)
+	return nil
+}
+
 type CreateTODORequestObject struct {
-	JSONBody     *CreateTODOJSONRequestBody
-	FormdataBody *CreateTODOFormdataRequestBody
-	Body         io.Reader
+	JSONBody *CreateTODOJSONRequestBody
+	Body     io.Reader
 }
 
 type CreateTODOResponseObject interface {
@@ -475,6 +543,9 @@ func (response UpdateUserdefaultResponse) VisitUpdateUserResponse(w http.Respons
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// Get all TODO tasks
+	// (GET /todo)
+	GetAllTODOTasks(ctx context.Context, request GetAllTODOTasksRequestObject) (GetAllTODOTasksResponseObject, error)
 	// Create a new TODO task
 	// (POST /todo)
 	CreateTODO(ctx context.Context, request CreateTODORequestObject) (CreateTODOResponseObject, error)
@@ -518,6 +589,30 @@ type strictHandler struct {
 	options     StrictHTTPServerOptions
 }
 
+// GetAllTODOTasks operation middleware
+func (sh *strictHandler) GetAllTODOTasks(w http.ResponseWriter, r *http.Request) {
+	var request GetAllTODOTasksRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAllTODOTasks(ctx, request.(GetAllTODOTasksRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAllTODOTasks")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAllTODOTasksResponseObject); ok {
+		if err := validResponse.VisitGetAllTODOTasksResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // CreateTODO operation middleware
 func (sh *strictHandler) CreateTODO(w http.ResponseWriter, r *http.Request) {
 	var request CreateTODORequestObject
@@ -530,18 +625,6 @@ func (sh *strictHandler) CreateTODO(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		request.JSONBody = &body
-	}
-	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/x-www-form-urlencoded") {
-		if err := r.ParseForm(); err != nil {
-			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode formdata: %w", err))
-			return
-		}
-		var body CreateTODOFormdataRequestBody
-		if err := runtime.BindForm(&body, r.Form, nil, nil); err != nil {
-			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't bind formdata: %w", err))
-			return
-		}
-		request.FormdataBody = &body
 	}
 	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/xml") {
 		request.Body = r.Body
@@ -672,24 +755,25 @@ func (sh *strictHandler) UpdateUser(w http.ResponseWriter, r *http.Request, user
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/8xX32/bNhD+Vwhuj4pkt+lQ6GlrMhTBgGZA46fAKBjxZLGVeBx5sqMF/t+HI/3bbtEu",
-	"DtAXW5Z4P7/vu7OeZIWdQwuWgiyfZKga6FS8vLu9vuVv59GBJwPxroZQeePIoOWf8Kg614Is5fX2gcBa",
-	"UAOCVPgiCIVGmUkaHB8L5I2dyWUmjd5zMB5lskbfKZKlNJZ+u9waGUswA89WVnWwH/juG1GWmfTwT288",
-	"aFneJ+NMugYJJ74NcrqxwIfPUJHM5GPXsv8URxJqjG4mAfxxN85Vw1XjTRBXHjvwL1BFz8kv2U+AqveG",
-	"ho+Mc6pBOfPpCwyxHCtL2YDSMYuV8fr5Johy5i8YuBAHFAg9fFI9NeygbnGRGtO51lSGYoCeGvTmX8Xc",
-	"mPiWYxC5UBbF2kEeFmo2A58bLJDPF2sjrjRU6FKuHpQu2UiW8VoM2HsRb2Ry4Q3B+mmH2tRDfCSMTedU",
-	"VWFvKXVi3TEO9CrdMrZGjlKhJVXF3KFThhOuGKDfqwhQXrVc/J4S5F1jgvjj7xvhPM6NhiBgDn6gxtiZ",
-	"sAAatKjRCyWYUqI1gXJuqaFEYhZbJufgQ/I3zkf5iMOgA6uckaV8nY/y1wy8oiZ2o4jsZFJioCNxyisP",
-	"ikAoYWEhOEAUpIwufQTjRm+OrRJgnkGgd6iHdSfAJhQdIxrNis8hqT9NC7761UMtS/lLsR0nxWqWFNE1",
-	"93fXxePFYrG4YLFc9L4FW6EG/VyfifQ/5OEIyK92bStB8j1ETQaHNiRmvhqNXrhh5yjuY19VEELdt2JD",
-	"AibZ5ejNMX9u7Fy1RgtjXU986s1ofHzqA5JgtUMHlkDL3Skjy/unwyFxv6vTbEfR0+U0k6HvOuWHb+FA",
-	"ahbYTST/lMMVPN+KJ/7kmbVMSbZAcJxu1GmlrEDbDuIBhEYL4mGIC6vF2Qy4YMG+8iOpXEencRWwDL3q",
-	"gMCHWOZhGBCci6BGUdR/4B3F8aIPLbM0bVnM21m7LuGIbtkO8IfbYXpAxctExdNgriOI0DO5GDCG//LY",
-	"gssUFknU2Fv9Y/hvUEwdi1F3oIs/p8tMziBKZb/L74E49rvhw2rR/b9G10BVAzoXk5ASGMcBTBDI2Fku",
-	"XhCBcw6DSdrdzxgGk832329d+Oow+Hn48x4ohmSFxu8VNkdM4hF1XrFPnFbfJ/bT/Ouj/dmFfv79fJph",
-	"z9vPL8faBItQVsCjCVx9IoaxEdW4auThdv4+5nGoWvXtCSad1soeVVeJnR51aSv6+ZpA/eZvcFkULVaq",
-	"bTBQ+Xb0dlTMx5KhXnk4zOTP7d9K9YA9bXdj2NIrvbZkh7a369TDynaV7N5rwnT5XwAAAP//QpMLjBUO",
-	"AAA=",
+	"H4sIAAAAAAAC/8xX32/bNhD+Vwhuj4rltOlQ6GltMgzBgGZA46fAKBjxZLGVeBp5sqMZ/t+HI+Ufspw1",
+	"bROgL4kt8X5999139FrmWDdowZKX2Vo6+KcFT+9RGwgPbm+ubvh/jpbAEn9UTVOZXJFBm372aPmZz0uo",
+	"FX/61UEhM/lLunecxrc+Dc42m2Tg4qGuvtnDJpEafO5Mwy5kFtIUeP8ZcgoB+vOHFTQOG3DU1zUwX0t4",
+	"UHVTgczk1f6FwEJQCYKU/yIIhUaZSOoaPubJGbuQm0QaPXBwPk1kga5WJDNpLP12sTcylmABjq2sqmEY",
+	"+PZ/omyS0BnjQMvsLhoPIZjvbHoUEtkDGyNJQo3BEeMRIDAEtX8a4DvnyjnV8feZBzdG9bmwuCyd8eLS",
+	"YQ3uqWg0JRLOXOW/jkXLyQcWechbZ6j7yOXGGlRjPn2BLpTD1CpB6ZBFb7x9v8ekMX9BAKUB8oQOPqmW",
+	"SnZQVLiKwNRMeBPnp6USnfk30H/mKo5B1PgsTbcOJn6lFgtwE4Mp8vl0a8SV+hwb6MdV6YyNZBY+iw5b",
+	"J8KDRK6cIdi+rVGboguvhLHxnMpzbC1FJLaIcaBX8ZGxBW5nX+Uhd6iV4YRzbtDveWjQJK/keCBL48W7",
+	"v69F43BpNHgBS3AdlcYuhAXQoEWBTijBxBSV8TRhSA3FYWDaJXIJzkd/55PpZMphsAGrGiMz+Xoynbzm",
+	"xisqAxpp4Hi2lgug0YzLP4GEqioRpIJHmjFi8oY+XOt45F1V8YHb/r0D36D1Ee1X0+mzSqH/cS30p8Tw",
+	"Y5vn4H3RVmJXH0P3Zno+huUDkmB2Qg2WQEf1bOtaue4x0EgtPA9egHvOvEd/AvBLB4pAKGFhtXcwAj0e",
+	"6xu+3z/dY+UPVtROn160US+zsx5r08X0zRjMa7tUldHC2Kalb2tmL3Eyu1sfK9TdoUgkB3Iy38wPafBo",
+	"K4+osElkyuKarvkvC+YmJlkBwTjdIBK5sgJt1Yl7EBotiPsubN0KFwvgggX7mox4cxWchj3EGuBUDQTO",
+	"hzKPw4DgXASVioL4eF60HC/40DKJUs9Kshf6bQnycN2QayE5aPzxapofUfEiUvF0M7cRhG+ZXNwwbv/F",
+	"2ILLFBZJFNha/Z3DHBELUQ9aF77yFPeqOZJEjv2++9Bv2e8DugDKS9ATMfMxgfOg/gSejF1MxAt24DnF",
+	"YBYvDj8gBrPd1WMInX9UDH4e/vAy4JA8oeF/35sRk1iinnfYZ41WTxv20/xrg/2zD/pgWb0gw85Wq9UZ",
+	"36TPWleBzVGD/hlYG9silBXwYDxXH4lhbOhqWDWj7fw05nGoQrXVCSadnpUBVfvETktd3IpuuSVQu7uD",
+	"Z2laYa6qEj1lb6dvp+nyXHKrew/Hmfyxv9Oqe2xpeE8a/PJKjm1vtqn73rZPdvAbZb75LwAA///lqyE0",
+	"og8AAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

@@ -9,10 +9,13 @@ const (
 
 // TODO defines model for TODO.
 type TODO struct {
-	Description *string `json:"description,omitempty"`
-	ID          *int64  `json:"id,omitempty"`
-	Name        string  `json:"name"`
+	Description string `json:"description"`
+	ID          *int64 `json:"id,omitempty"`
+	Name        string `json:"name"`
 }
+
+// TODOs defines model for TODOs.
+type TODOs = []TODO
 
 // User defines model for User.
 type User struct {
@@ -22,9 +25,6 @@ type User struct {
 
 // CreateTODOJSONRequestBody defines body for CreateTODO for application/json ContentType.
 type CreateTODOJSONRequestBody = TODO
-
-// CreateTODOFormdataRequestBody defines body for CreateTODO for application/x-www-form-urlencoded ContentType.
-type CreateTODOFormdataRequestBody = TODO
 
 // UpdateUserJSONRequestBody defines body for UpdateUser for application/json ContentType.
 type UpdateUserJSONRequestBody = User

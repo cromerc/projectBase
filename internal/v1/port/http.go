@@ -16,6 +16,11 @@ type server struct {
 	mapper mapper.PortMapper
 }
 
+func (s server) GetAllTODOTasks(ctx context.Context, request api.GetAllTODOTasksRequestObject) (api.GetAllTODOTasksResponseObject, error) {
+	// TODO implement me
+	return api.GetAllTODOTasks501Response{}, nil
+}
+
 func (s server) CreateTODO(ctx context.Context, request api.CreateTODORequestObject) (api.CreateTODOResponseObject, error) {
 	// TODO implement me
 	return api.CreateTODO501Response{}, nil

@@ -90,12 +90,13 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// GetAllTODOTasks request
+	GetAllTODOTasks(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// CreateTODOWithBody request with any body
 	CreateTODOWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	CreateTODO(ctx context.Context, body CreateTODOJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	CreateTODOWithFormdataBody(ctx context.Context, body CreateTODOFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteUser request
 	DeleteUser(ctx context.Context, username string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -109,6 +110,18 @@ type ClientInterface interface {
 	UpdateUser(ctx context.Context, username string, body UpdateUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	UpdateUserWithFormdataBody(ctx context.Context, username string, body UpdateUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+func (c *Client) GetAllTODOTasks(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetAllTODOTasksRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 func (c *Client) CreateTODOWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -125,18 +138,6 @@ func (c *Client) CreateTODOWithBody(ctx context.Context, contentType string, bod
 
 func (c *Client) CreateTODO(ctx context.Context, body CreateTODOJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateTODORequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) CreateTODOWithFormdataBody(ctx context.Context, body CreateTODOFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateTODORequestWithFormdataBody(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -207,6 +208,33 @@ func (c *Client) UpdateUserWithFormdataBody(ctx context.Context, username string
 	return c.Client.Do(req)
 }
 
+// NewGetAllTODOTasksRequest generates requests for GetAllTODOTasks
+func NewGetAllTODOTasksRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/todo")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewCreateTODORequest calls the generic CreateTODO builder with application/json body
 func NewCreateTODORequest(server string, body CreateTODOJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -216,17 +244,6 @@ func NewCreateTODORequest(server string, body CreateTODOJSONRequestBody) (*http.
 	}
 	bodyReader = bytes.NewReader(buf)
 	return NewCreateTODORequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewCreateTODORequestWithFormdataBody calls the generic CreateTODO builder with application/x-www-form-urlencoded body
-func NewCreateTODORequestWithFormdataBody(server string, body CreateTODOFormdataRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	bodyStr, err := runtime.MarshalForm(body, nil)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = strings.NewReader(bodyStr.Encode())
-	return NewCreateTODORequestWithBody(server, "application/x-www-form-urlencoded", bodyReader)
 }
 
 // NewCreateTODORequestWithBody generates requests for CreateTODO with any type of body
@@ -427,12 +444,13 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// GetAllTODOTasksWithResponse request
+	GetAllTODOTasksWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetAllTODOTasksResponse, error)
+
 	// CreateTODOWithBodyWithResponse request with any body
 	CreateTODOWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateTODOResponse, error)
 
 	CreateTODOWithResponse(ctx context.Context, body CreateTODOJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateTODOResponse, error)
-
-	CreateTODOWithFormdataBodyWithResponse(ctx context.Context, body CreateTODOFormdataRequestBody, reqEditors ...RequestEditorFn) (*CreateTODOResponse, error)
 
 	// DeleteUserWithResponse request
 	DeleteUserWithResponse(ctx context.Context, username string, reqEditors ...RequestEditorFn) (*DeleteUserResponse, error)
@@ -446,6 +464,29 @@ type ClientWithResponsesInterface interface {
 	UpdateUserWithResponse(ctx context.Context, username string, body UpdateUserJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateUserResponse, error)
 
 	UpdateUserWithFormdataBodyWithResponse(ctx context.Context, username string, body UpdateUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*UpdateUserResponse, error)
+}
+
+type GetAllTODOTasksResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *TODOs
+	XML200       *TODOs
+}
+
+// Status returns HTTPResponse.Status
+func (r GetAllTODOTasksResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetAllTODOTasksResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
 }
 
 type CreateTODOResponse struct {
@@ -536,6 +577,15 @@ func (r UpdateUserResponse) StatusCode() int {
 	return 0
 }
 
+// GetAllTODOTasksWithResponse request returning *GetAllTODOTasksResponse
+func (c *ClientWithResponses) GetAllTODOTasksWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetAllTODOTasksResponse, error) {
+	rsp, err := c.GetAllTODOTasks(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetAllTODOTasksResponse(rsp)
+}
+
 // CreateTODOWithBodyWithResponse request with arbitrary body returning *CreateTODOResponse
 func (c *ClientWithResponses) CreateTODOWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateTODOResponse, error) {
 	rsp, err := c.CreateTODOWithBody(ctx, contentType, body, reqEditors...)
@@ -547,14 +597,6 @@ func (c *ClientWithResponses) CreateTODOWithBodyWithResponse(ctx context.Context
 
 func (c *ClientWithResponses) CreateTODOWithResponse(ctx context.Context, body CreateTODOJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateTODOResponse, error) {
 	rsp, err := c.CreateTODO(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateTODOResponse(rsp)
-}
-
-func (c *ClientWithResponses) CreateTODOWithFormdataBodyWithResponse(ctx context.Context, body CreateTODOFormdataRequestBody, reqEditors ...RequestEditorFn) (*CreateTODOResponse, error) {
-	rsp, err := c.CreateTODOWithFormdataBody(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -602,6 +644,39 @@ func (c *ClientWithResponses) UpdateUserWithFormdataBodyWithResponse(ctx context
 		return nil, err
 	}
 	return ParseUpdateUserResponse(rsp)
+}
+
+// ParseGetAllTODOTasksResponse parses an HTTP response from a GetAllTODOTasksWithResponse call
+func ParseGetAllTODOTasksResponse(rsp *http.Response) (*GetAllTODOTasksResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetAllTODOTasksResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TODOs
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "xml") && rsp.StatusCode == 200:
+		var dest TODOs
+		if err := xml.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.XML200 = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseCreateTODOResponse parses an HTTP response from a CreateTODOWithResponse call

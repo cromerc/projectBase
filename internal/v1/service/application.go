@@ -34,7 +34,7 @@ func (hs HTTPServer) Run() (err error) {
 	api.HandlerFromMux(strictMode, apiRouter)
 
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.AllowContentType("application/json", "application/text"))
+	r.Use(middleware.AllowContentType("application/json", "application/xml"))
 	r.Use(middleware.Compress(5))
 	r.Use(middleware.Heartbeat("/ping"))
 	r.Use(middleware.Logger)
