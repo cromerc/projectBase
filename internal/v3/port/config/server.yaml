@@ -1,0 +1,11 @@
+package: api
+generate:
+  chi-server: true
+  strict-server: true
+  embedded-spec: true
+output: api/server.gen.go
+output-options:
+  name-normalizer: ToCamelCaseWithInitialisms
+  #exclude-tags: ['user']
+  #overlay:
+  #  path: config/overlay.yaml

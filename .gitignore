@@ -1,0 +1,10 @@
+# task files
+.task
+
+# generated binaries
+serve
+__debug_bin*
+
+# environements
+.env
+.env.*

@@ -1,0 +1,68 @@
+version: '3'
+
+tasks:
+  build:
+    internal: true
+    desc: Develop the app
+    sources:
+      - 'cmd/**/*.go'
+      - 'internal/**/*.go'
+    generates:
+      - serve
+    deps: [openapi, map, format]
+    cmds:
+      - go build -gcflags="all=-N -l" -o serve ./cmd/serve/main.go
+
+  run:
+    desc: Run the app
+    watch: true
+    sources:
+      - 'cmd/**/*.go'
+      - 'internal/**/*.go'
+    deps: [build]
+    cmds:
+      - ./serve
+
+  debug:
+    desc: Debug the app
+    deps: [openapi, map, format]
+    interactive: true
+    cmds:
+      - go run -modfile=tools/go.mod github.com/cespare/reflex -r '(\.go$|go\.mod|go\.sum)' --decoration=none -s -- go run -modfile=tools/go.mod github.com/go-delve/delve/cmd/dlv debug --listen=:2345 --headless --disable-aslr --api-version=2 --accept-multiclient "./cmd/serve/main.go"
+
+  format:
+    sources:
+      - 'cmd/**/*.go'
+      - 'internal/**/*.go'
+    generates:
+      - 'cmd/**/*.go'
+      - 'internal/**/*.go'
+    cmds:
+      - go run -modfile=tools/go.mod mvdan.cc/gofumpt -l -w internal
+
+  map:
+    desc: Generate mappers
+    deps: [map-port, map-adapter]
+
+  map-port:
+    internal: true
+    desc: Generate a mapper for the port
+    sources:
+      - 'internal/v3/port/mapper/mapper.go'
+    generates:
+      - 'internal/v3/port/mapper/*.gen.go'
+    cmds:
+      - go generate ./internal/v3/port/mapper
+
+  map-adapter:
+    internal: true
+    desc: Generate a mapper for the adapter
+
+  openapi:
+    sources:
+      - api/*.yaml
+      - internal/v3/port/config/*.yaml
+    generates:
+      - internal/v3/port/api/*.gen.go
+    cmds:
+      - go generate ./internal/v3/port/http.go

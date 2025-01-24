@@ -1,0 +1,8 @@
+overlay: 1.0.0
+info:
+  title: Overlay
+  version: 0.0.0
+actions:
+  - target: $.paths['/user', '/user/{username}', '/user/login', '/user/logout', '/user/createWithList']
+    description: Remove user endpoints
+    remove: true
