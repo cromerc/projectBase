@@ -10,7 +10,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -341,25 +340,6 @@ func (response GetAllTODOTasks200JSONResponse) VisitGetAllTODOTasksResponse(w ht
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetAllTODOTasks200ApplicationXMLResponse struct {
-	Body          io.Reader
-	ContentLength int64
-}
-
-func (response GetAllTODOTasks200ApplicationXMLResponse) VisitGetAllTODOTasksResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/xml")
-	if response.ContentLength != 0 {
-		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
-	}
-	w.WriteHeader(200)
-
-	if closer, ok := response.Body.(io.ReadCloser); ok {
-		defer closer.Close()
-	}
-	_, err := io.Copy(w, response.Body)
-	return err
-}
-
 type GetAllTODOTasks501Response struct {
 }
 
@@ -369,8 +349,7 @@ func (response GetAllTODOTasks501Response) VisitGetAllTODOTasksResponse(w http.R
 }
 
 type CreateTODORequestObject struct {
-	JSONBody *CreateTODOJSONRequestBody
-	Body     io.Reader
+	Body *CreateTODOJSONRequestBody
 }
 
 type CreateTODOResponseObject interface {
@@ -384,25 +363,6 @@ func (response CreateTODO200JSONResponse) VisitCreateTODOResponse(w http.Respons
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
-}
-
-type CreateTODO200ApplicationXMLResponse struct {
-	Body          io.Reader
-	ContentLength int64
-}
-
-func (response CreateTODO200ApplicationXMLResponse) VisitCreateTODOResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/xml")
-	if response.ContentLength != 0 {
-		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
-	}
-	w.WriteHeader(200)
-
-	if closer, ok := response.Body.(io.ReadCloser); ok {
-		defer closer.Close()
-	}
-	_, err := io.Copy(w, response.Body)
-	return err
 }
 
 type CreateTODO405Response struct {
@@ -470,25 +430,6 @@ func (response GetUserByName200JSONResponse) VisitGetUserByNameResponse(w http.R
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetUserByName200ApplicationXMLResponse struct {
-	Body          io.Reader
-	ContentLength int64
-}
-
-func (response GetUserByName200ApplicationXMLResponse) VisitGetUserByNameResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/xml")
-	if response.ContentLength != 0 {
-		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
-	}
-	w.WriteHeader(200)
-
-	if closer, ok := response.Body.(io.ReadCloser); ok {
-		defer closer.Close()
-	}
-	_, err := io.Copy(w, response.Body)
-	return err
-}
-
 type GetUserByName400Response struct {
 }
 
@@ -514,10 +455,8 @@ func (response GetUserByName501Response) VisitGetUserByNameResponse(w http.Respo
 }
 
 type UpdateUserRequestObject struct {
-	Username     string `json:"username"`
-	JSONBody     *UpdateUserJSONRequestBody
-	FormdataBody *UpdateUserFormdataRequestBody
-	Body         io.Reader
+	Username string `json:"username"`
+	Body     *UpdateUserJSONRequestBody
 }
 
 type UpdateUserResponseObject interface {
@@ -617,18 +556,12 @@ func (sh *strictHandler) GetAllTODOTasks(w http.ResponseWriter, r *http.Request)
 func (sh *strictHandler) CreateTODO(w http.ResponseWriter, r *http.Request) {
 	var request CreateTODORequestObject
 
-	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
-
-		var body CreateTODOJSONRequestBody
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-			return
-		}
-		request.JSONBody = &body
+	var body CreateTODOJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
 	}
-	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/xml") {
-		request.Body = r.Body
-	}
+	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.CreateTODO(ctx, request.(CreateTODORequestObject))
@@ -707,30 +640,13 @@ func (sh *strictHandler) UpdateUser(w http.ResponseWriter, r *http.Request, user
 	var request UpdateUserRequestObject
 
 	request.Username = username
-	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
 
-		var body UpdateUserJSONRequestBody
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-			return
-		}
-		request.JSONBody = &body
+	var body UpdateUserJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
 	}
-	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/x-www-form-urlencoded") {
-		if err := r.ParseForm(); err != nil {
-			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode formdata: %w", err))
-			return
-		}
-		var body UpdateUserFormdataRequestBody
-		if err := runtime.BindForm(&body, r.Form, nil, nil); err != nil {
-			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't bind formdata: %w", err))
-			return
-		}
-		request.FormdataBody = &body
-	}
-	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/xml") {
-		request.Body = r.Body
-	}
+	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.UpdateUser(ctx, request.(UpdateUserRequestObject))
@@ -755,25 +671,24 @@ func (sh *strictHandler) UpdateUser(w http.ResponseWriter, r *http.Request, user
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/8xX32/bNhD+Vwhuj4rltOlQ6GltMgzBgGZA46fAKBjxZLGVeBp5sqMZ/t+HI+Ufspw1",
-	"bROgL4kt8X5999139FrmWDdowZKX2Vo6+KcFT+9RGwgPbm+ubvh/jpbAEn9UTVOZXJFBm372aPmZz0uo",
-	"FX/61UEhM/lLunecxrc+Dc42m2Tg4qGuvtnDJpEafO5Mwy5kFtIUeP8ZcgoB+vOHFTQOG3DU1zUwX0t4",
-	"UHVTgczk1f6FwEJQCYKU/yIIhUaZSOoaPubJGbuQm0QaPXBwPk1kga5WJDNpLP12sTcylmABjq2sqmEY",
-	"+PZ/omyS0BnjQMvsLhoPIZjvbHoUEtkDGyNJQo3BEeMRIDAEtX8a4DvnyjnV8feZBzdG9bmwuCyd8eLS",
-	"YQ3uqWg0JRLOXOW/jkXLyQcWechbZ6j7yOXGGlRjPn2BLpTD1CpB6ZBFb7x9v8ekMX9BAKUB8oQOPqmW",
-	"SnZQVLiKwNRMeBPnp6USnfk30H/mKo5B1PgsTbcOJn6lFgtwE4Mp8vl0a8SV+hwb6MdV6YyNZBY+iw5b",
-	"J8KDRK6cIdi+rVGboguvhLHxnMpzbC1FJLaIcaBX8ZGxBW5nX+Uhd6iV4YRzbtDveWjQJK/keCBL48W7",
-	"v69F43BpNHgBS3AdlcYuhAXQoEWBTijBxBSV8TRhSA3FYWDaJXIJzkd/55PpZMphsAGrGiMz+Xoynbzm",
-	"xisqAxpp4Hi2lgug0YzLP4GEqioRpIJHmjFi8oY+XOt45F1V8YHb/r0D36D1Ee1X0+mzSqH/cS30p8Tw",
-	"Y5vn4H3RVmJXH0P3Zno+huUDkmB2Qg2WQEf1bOtaue4x0EgtPA9egHvOvEd/AvBLB4pAKGFhtXcwAj0e",
-	"6xu+3z/dY+UPVtROn160US+zsx5r08X0zRjMa7tUldHC2Kalb2tmL3Eyu1sfK9TdoUgkB3Iy38wPafBo",
-	"K4+osElkyuKarvkvC+YmJlkBwTjdIBK5sgJt1Yl7EBotiPsubN0KFwvgggX7mox4cxWchj3EGuBUDQTO",
-	"hzKPw4DgXASVioL4eF60HC/40DKJUs9Kshf6bQnycN2QayE5aPzxapofUfEiUvF0M7cRhG+ZXNwwbv/F",
-	"2ILLFBZJFNha/Z3DHBELUQ9aF77yFPeqOZJEjv2++9Bv2e8DugDKS9ATMfMxgfOg/gSejF1MxAt24DnF",
-	"YBYvDj8gBrPd1WMInX9UDH4e/vAy4JA8oeF/35sRk1iinnfYZ41WTxv20/xrg/2zD/pgWb0gw85Wq9UZ",
-	"36TPWleBzVGD/hlYG9silBXwYDxXH4lhbOhqWDWj7fw05nGoQrXVCSadnpUBVfvETktd3IpuuSVQu7uD",
-	"Z2laYa6qEj1lb6dvp+nyXHKrew/Hmfyxv9Oqe2xpeE8a/PJKjm1vtqn73rZPdvAbZb75LwAA///lqyE0",
-	"og8AAA==",
+	"H4sIAAAAAAAC/8xW3W7cNhN9FYLfdylI68QpAl01sYvCKBAXiH1lLAJaHK2YSByWHK2jGnr3Ykjtr9aF",
+	"E9hAb2ytSM7POXMO9Sgr7BxasBRk+Sg9/NVDoI+oDcQXN9eX1/y/QktgiR+Vc62pFBm0xdeAlt+FqoFO",
+	"8dP/PdSylP8rdoGLtBqKGGwcx0xqCJU3jmPIMiYReP8VKpK8Ou3fz+88OvA0VXVw/FHCd9W5FmQpL3cL",
+	"AmtBDQhS4ZsgFBplJmlwvC2QN3Ylx0wafRDgbJHJGn2nSJbSWPrlfHfIWIIVeD5lVQeHiW/+JcuYRVyN",
+	"By3Lu3T4EILl9swGhSx2Hps1BF14HrTbMMp7NfDv2wB+jt9LdX3ReBPEhccO/HP7dg0S3vo2nOiauYeq",
+	"94aGz9xYqlY58+UbDLFwHpcGlI75UkHb9V33zvwBsX0HFAg9fFE9NRygbvEhQdDxFJs00T016M3fcaZv",
+	"fcs5iFwoi2ITIA8ParUCnxsskPcXm0PcU6jQwSQgpUs+JMv4LAbsvYgvMvngDcFmtUNt6iEuCWPTPlVV",
+	"2FtKGtlgw4nepFfG1rhRo6pi7dApwwVXTMWvVaQir1o5F1ljgvjw55VwHtdGQxCwBj9QY+xKWAANWtTo",
+	"hRKEGkVrAuUMqaE04DxgmVyDDyneWb7IF5wGHVjljCzl23yRv2WKFTURjYJD8cMKaKZb+TuQUG0rovxZ",
+	"powRj2nk4UqnLR/aljfcTOsegkMbEtpvFosXNadwyp0+91UFIdR9K7bFcd/vFmfznj4hCR4t6MAS6DTS",
+	"fdcpPzzVMalVYH1ErJY8tBhOoHXhQREIJSw87ALMEEvbJrZ2dj481f6B429t5FVR/hGQzxfv5lBc2bVq",
+	"jRbGup5+jIrJXWR593hsDnf7+sz2lLwcl/skPknEEZFjJos+gC8e+S971ZiKbIFgXm7UZ6WsQNsO4h6E",
+	"RgvifoiXWIurFXDDgmPlM9YvY9Bo9iw/rzog8CG2eZwGBNciqFEUdR/43uJ8MYaWWXJZFvHOYzctyH1P",
+	"J99Dtkf8sf8vjwbpPA3SaTI3GUToebqYMKb/fH6C2xQWSdTYW/2TUkyIxax71MWfrMHJsGZuxLk/Dp+m",
+	"q+zngK6BqgZ0Lm5DKuAsGi9BIGNXuXhFBl5SynHaTkg5PCnl/w77bMSckvUV/0/IzuaADeZlpXrrtHqe",
+	"VE9PTx/Pv7hMDy6KV52PBIBQVsB3EzhPosDYiF+05Nkd9DyOOVWt+vYEZ6en8mAopsJOW0K6Pfx6Q1W/",
+	"/Uwsi6LFSrUNBirfL94vivWZZFCnCMeV/Lb77FL32NPh18BEZLxDxuz47PWm9DCdnYrdo1+Oy/GfAAAA",
+	"///wNAQs1w0AAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

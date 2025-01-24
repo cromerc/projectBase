@@ -28,6 +28,3 @@ type CreateTODOJSONRequestBody = TODO
 
 // UpdateUserJSONRequestBody defines body for UpdateUser for application/json ContentType.
 type UpdateUserJSONRequestBody = User
-
-// UpdateUserFormdataRequestBody defines body for UpdateUser for application/x-www-form-urlencoded ContentType.
-type UpdateUserFormdataRequestBody = User

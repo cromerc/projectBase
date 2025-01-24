@@ -17,6 +17,7 @@ tasks:
     desc: Run the app
     watch: true
     sources:
+      - 'api/*.yaml'
       - 'cmd/**/*.go'
       - 'internal/**/*.go'
     deps: [build]

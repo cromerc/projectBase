@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
@@ -108,8 +107,6 @@ type ClientInterface interface {
 	UpdateUserWithBody(ctx context.Context, username string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	UpdateUser(ctx context.Context, username string, body UpdateUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	UpdateUserWithFormdataBody(ctx context.Context, username string, body UpdateUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) GetAllTODOTasks(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -186,18 +183,6 @@ func (c *Client) UpdateUserWithBody(ctx context.Context, username string, conten
 
 func (c *Client) UpdateUser(ctx context.Context, username string, body UpdateUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateUserRequest(c.Server, username, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) UpdateUserWithFormdataBody(ctx context.Context, username string, body UpdateUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateUserRequestWithFormdataBody(c.Server, username, body)
 	if err != nil {
 		return nil, err
 	}
@@ -354,17 +339,6 @@ func NewUpdateUserRequest(server string, username string, body UpdateUserJSONReq
 	return NewUpdateUserRequestWithBody(server, username, "application/json", bodyReader)
 }
 
-// NewUpdateUserRequestWithFormdataBody calls the generic UpdateUser builder with application/x-www-form-urlencoded body
-func NewUpdateUserRequestWithFormdataBody(server string, username string, body UpdateUserFormdataRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	bodyStr, err := runtime.MarshalForm(body, nil)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = strings.NewReader(bodyStr.Encode())
-	return NewUpdateUserRequestWithBody(server, username, "application/x-www-form-urlencoded", bodyReader)
-}
-
 // NewUpdateUserRequestWithBody generates requests for UpdateUser with any type of body
 func NewUpdateUserRequestWithBody(server string, username string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
@@ -462,15 +436,12 @@ type ClientWithResponsesInterface interface {
 	UpdateUserWithBodyWithResponse(ctx context.Context, username string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateUserResponse, error)
 
 	UpdateUserWithResponse(ctx context.Context, username string, body UpdateUserJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateUserResponse, error)
-
-	UpdateUserWithFormdataBodyWithResponse(ctx context.Context, username string, body UpdateUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*UpdateUserResponse, error)
 }
 
 type GetAllTODOTasksResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *TODOs
-	XML200       *TODOs
 }
 
 // Status returns HTTPResponse.Status
@@ -493,7 +464,6 @@ type CreateTODOResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *TODO
-	XML200       *TODO
 }
 
 // Status returns HTTPResponse.Status
@@ -537,7 +507,6 @@ type GetUserByNameResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *User
-	XML200       *User
 }
 
 // Status returns HTTPResponse.Status
@@ -638,14 +607,6 @@ func (c *ClientWithResponses) UpdateUserWithResponse(ctx context.Context, userna
 	return ParseUpdateUserResponse(rsp)
 }
 
-func (c *ClientWithResponses) UpdateUserWithFormdataBodyWithResponse(ctx context.Context, username string, body UpdateUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*UpdateUserResponse, error) {
-	rsp, err := c.UpdateUserWithFormdataBody(ctx, username, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateUserResponse(rsp)
-}
-
 // ParseGetAllTODOTasksResponse parses an HTTP response from a GetAllTODOTasksWithResponse call
 func ParseGetAllTODOTasksResponse(rsp *http.Response) (*GetAllTODOTasksResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -666,13 +627,6 @@ func ParseGetAllTODOTasksResponse(rsp *http.Response) (*GetAllTODOTasksResponse,
 			return nil, err
 		}
 		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "xml") && rsp.StatusCode == 200:
-		var dest TODOs
-		if err := xml.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.XML200 = &dest
 
 	}
 
@@ -699,13 +653,6 @@ func ParseCreateTODOResponse(rsp *http.Response) (*CreateTODOResponse, error) {
 			return nil, err
 		}
 		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "xml") && rsp.StatusCode == 200:
-		var dest TODO
-		if err := xml.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.XML200 = &dest
 
 	}
 
@@ -748,13 +695,6 @@ func ParseGetUserByNameResponse(rsp *http.Response) (*GetUserByNameResponse, err
 			return nil, err
 		}
 		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "xml") && rsp.StatusCode == 200:
-		var dest User
-		if err := xml.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.XML200 = &dest
 
 	}
 

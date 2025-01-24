@@ -25,9 +25,6 @@ paths:
         '200':
           description: Successful operation
           content:
-            application/xml:
-              schema:
-                $ref: '#/components/schemas/TODOs'
             application/json:
               schema:
                 $ref: '#/components/schemas/TODOs'
@@ -43,9 +40,6 @@ paths:
         '200':
           description: Successful operation
           content:
-            application/xml:
-              schema:
-                $ref: '#/components/schemas/TODO'
             application/json:
               schema:
                 $ref: '#/components/schemas/TODO'
@@ -77,9 +71,6 @@ paths:
         '200':
           description: successful operation
           content:
-            application/xml:
-              schema:
-                $ref: '#/components/schemas/User'
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
@@ -111,12 +102,6 @@ paths:
         description: Update an existent user in the store
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/User'
-          application/xml:
-            schema:
-              $ref: '#/components/schemas/User'
-          application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/User'
     delete:
@@ -156,8 +141,6 @@ components:
         description:
           type: string
           example: Description of the task to do
-      xml:
-        name: todo
       type: object
     TODOs:
       type: array
@@ -175,8 +158,6 @@ components:
         name:
           type: string
           example: Chris Cromer
-      xml:
-        name: user
       type: object
     Users:
       type: array
@@ -191,16 +172,11 @@ components:
           type: string
         message:
           type: string
-      xml:
-        name: '##default'
       type: object
   requestBodies:
     TODO:
       content:
         application/json:
-          schema:
-            $ref: '#/components/schemas/TODO'
-        application/xml:
           schema:
             $ref: '#/components/schemas/TODO'
       description: TODO object

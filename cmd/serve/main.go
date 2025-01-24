@@ -2,17 +2,39 @@ package main
 
 import (
 	"context"
+	"github.com/caarlos0/env/v11"
+	"github.com/cromerc/projectBase/internal/v1/adapter/logger"
 	"github.com/cromerc/projectBase/internal/v1/port"
 	"github.com/cromerc/projectBase/internal/v1/service"
-	"log"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	server := port.NewServer()
-	hs := service.NewHTTPServer(context.Background(), server)
-	log.Println("Server started...")
-	err := hs.Run()
+	err := godotenv.Load(".env")
 	if err != nil {
 		panic(err)
+	}
+
+	var cfg service.Config
+	err = env.Parse(&cfg)
+	if err != nil {
+		panic(err)
+	}
+
+	cfg, err = env.ParseAs[service.Config]()
+	if err != nil {
+		panic(err)
+	}
+
+	ctx := context.Background()
+
+	log := logger.New(cfg.Log)
+	log.Ctx(ctx).Info("Logger initialized")
+
+	server := port.NewServer(log)
+	hs := service.NewHTTPServer(context.Background(), log, server)
+	err = hs.Run()
+	if err != nil {
+		log.Fatal(err)
 	}
 }
