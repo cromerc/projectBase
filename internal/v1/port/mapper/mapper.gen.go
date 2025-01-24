@@ -5,28 +5,17 @@ package mapper
 
 import (
 	"fmt"
-	domain "github.com/cromerc/projectBase/internal/v3/domain"
-	api "github.com/cromerc/projectBase/internal/v3/port/api"
+	domain "github.com/cromerc/projectBase/internal/v1/domain"
+	api "github.com/cromerc/projectBase/internal/v1/port/api"
 )
 
 type PortMapper struct{}
 
 func (c *PortMapper) UserDomainToPort(source domain.User) api.User {
 	var apiUser api.User
-	pString := source.Email()
-	apiUser.Email = &pString
-	pString2 := source.FirstName()
-	apiUser.FirstName = &pString2
 	pInt64 := source.ID()
 	apiUser.ID = &pInt64
-	pString3 := source.LastName()
-	apiUser.LastName = &pString3
-	pString4 := source.Password()
-	apiUser.Password = &pString4
-	pString5 := source.Phone()
-	apiUser.Phone = &pString5
-	pString6 := source.Username()
-	apiUser.Username = &pString6
+	apiUser.Name = source.Username()
 	return apiUser
 }
 func (c *PortMapper) UserPortToDomain(source api.User) (domain.User, error) {

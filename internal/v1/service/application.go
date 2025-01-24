@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cromerc/projectBase/internal/v3/port/api"
+	"github.com/cromerc/projectBase/internal/v1/port/api"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -42,7 +42,7 @@ func (hs HTTPServer) Run() (err error) {
 	r.Use(middleware.Throttle(3))
 	r.Use(middleware.Timeout(time.Minute))
 
-	r.Mount("/v3", apiRouter)
+	r.Mount("/v1", apiRouter)
 
 	httpServer := &http.Server{
 		Addr:    ":8080",

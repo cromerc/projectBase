@@ -48,11 +48,11 @@ tasks:
     internal: true
     desc: Generate a mapper for the port
     sources:
-      - 'internal/v3/port/mapper/mapper.go'
+      - internal/*/port/mapper/mapper.go
     generates:
-      - 'internal/v3/port/mapper/*.gen.go'
+      - internal/*/port/mapper/*.gen.go
     cmds:
-      - go generate ./internal/v3/port/mapper
+      - go generate ./internal/*/port/mapper
 
   map-adapter:
     internal: true
@@ -61,8 +61,8 @@ tasks:
   openapi:
     sources:
       - api/*.yaml
-      - internal/v3/port/config/*.yaml
+      - internal/*/port/config/*.yaml
     generates:
-      - internal/v3/port/api/*.gen.go
+      - internal/*/port/api/*.gen.go
     cmds:
-      - go generate ./internal/v3/port/http.go
+      - go generate ./internal/*/port/http.go

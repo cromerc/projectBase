@@ -1,0 +1,212 @@
+openapi: 3.0.3
+servers:
+  - url: http://localhost:8080/v1
+info:
+  description: |-
+    This API provides everything needed for a todo list.
+  version: 1.0.0
+  title: TODO
+  contact:
+    email: chris@cromer.cl
+tags:
+  - name: todo
+    description: Everything about TODO tasks
+  - name: user
+    description: Operations about user
+paths:
+  /todo:
+    post:
+      tags:
+        - todo
+      summary: Create a new TODO task
+      description: Create a new TODO task
+      operationId: createTODO
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/TODO'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TODO'
+        '405':
+          description: Invalid input
+        '501':
+          description: Not implemented
+      security:
+        - petstore_auth:
+            - 'write:pets'
+            - 'read:pets'
+      requestBody:
+        description: Create a new TODO task
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TODO'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/TODO'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TODO'
+  '/user/{username}':
+    get:
+      tags:
+        - user
+      summary: Get user by user name
+      description: ''
+      operationId: getUserByName
+      parameters:
+        - name: username
+          in: path
+          description: 'The name that needs to be fetched. Use user1 for testing. '
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/User'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid username supplied
+        '404':
+          description: User not found
+        '501':
+          description: Not implemented
+    put:
+      tags:
+        - user
+      summary: Update user
+      description: This can only be done by the logged in user.
+      operationId: updateUser
+      parameters:
+        - name: username
+          in: path
+          description: name that needs to be updated
+          required: true
+          schema:
+            type: string
+      responses:
+        default:
+          description: successful operation
+        '501':
+          description: Not implemented
+      requestBody:
+        description: Update an existent user in the store
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+    delete:
+      tags:
+        - user
+      summary: Delete user
+      description: This can only be done by the logged in user.
+      operationId: deleteUser
+      parameters:
+        - name: username
+          in: path
+          description: The name that needs to be deleted
+          required: true
+          schema:
+            type: string
+      responses:
+        '400':
+          description: Invalid username supplied
+        '404':
+          description: User not found
+        '501':
+          description: Not implemented
+components:
+  schemas:
+    TODO:
+      required:
+        - name
+        - photoUrls
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 10
+        name:
+          type: string
+          example: Task to do
+        description:
+          type: string
+          example: Description of the task to do
+      xml:
+        name: todo
+      type: object
+    User:
+      required:
+        - name
+        - photoUrls
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 10
+        name:
+          type: string
+          example: Chris Cromer
+      xml:
+        name: user
+      type: object
+    ApiResponse:
+      properties:
+        code:
+          type: integer
+          format: int32
+        type:
+          type: string
+        message:
+          type: string
+      xml:
+        name: '##default'
+      type: object
+  requestBodies:
+    TODO:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TODO'
+        application/xml:
+          schema:
+            $ref: '#/components/schemas/TODO'
+      description: Pet object that needs to be added to the store
+    UserArray:
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/User'
+      description: List of user object
+  securitySchemes:
+    petstore_auth:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: 'https://petstore.swagger.io/oauth/authorize'
+          scopes:
+            'write:pets': modify pets in your account
+            'read:pets': read your pets
+    api_key:
+      type: apiKey
+      name: api_key
+      in: header
