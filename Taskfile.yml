@@ -31,48 +31,46 @@ tasks:
       - go run -modfile=tools/go.mod github.com/cespare/reflex -r '(\.go$|go\.mod|go\.sum)' --decoration=none -s -- go run -modfile=tools/go.mod github.com/go-delve/delve/cmd/dlv debug --listen=:2345 --headless --disable-aslr --api-version=2 --accept-multiclient "./cmd/serve/main.go"
 
   format:
-    desc: Format code in the project
-    deps: [ format-cmd, format-internal ]
-
-  format-cmd:
-    internal: true
-    desc: Format cmd code
+    desc: Format code
     sources:
       - 'cmd/**/*.go'
+      - 'internal/**/*.go'
     generates:
       - 'cmd/**/*.go'
-    cmds:
-      - go run -modfile=tools/go.mod mvdan.cc/gofumpt -l -w cmd
-
-  format-internal:
-    internal: true
-    desc: Format internal code
-    sources:
-      - 'internal/**/*.go'
-    generates:
       - 'internal/**/*.go'
     cmds:
-      - go run -modfile=tools/go.mod mvdan.cc/gofumpt -l -w internal
+      - go run -modfile=tools/go.mod mvdan.cc/gofumpt -l -w cmd internal
 
   map:
     desc: Generate mappers
-    deps: [map-port, map-adapter]
+    deps: [ map-api, map-postgres ]
 
-  map-port:
+  map-api:
     internal: true
-    desc: Generate a mapper for the port
+    desc: Generate a mapper for the api
     sources:
-      - internal/*/port/mapper/mapper.go
+      - internal/*/port/mapper/api/goverter.go
+      - internal/*/port/mapper/api/constructor.go
     generates:
-      - internal/*/port/mapper/*.gen.go
+      - internal/*/port/mapper/api/api_to_domain.gen.go
+      - internal/*/port/mapper/api/domain_to_api.gen.go
     cmds:
-      - go generate ./internal/*/port/mapper
+      - go generate ./internal/*/port/mapper/api/goverter.go
 
-  map-adapter:
+  map-postgres:
     internal: true
-    desc: Generate a mapper for the adapter
+    desc: Generate a mapper for postgres
+    sources:
+      - internal/*/adapter/mapper/postgres/goverter.go
+      - internal/*/adapter/mapper/postgres/constructor.go
+    generates:
+      - internal/*/adapter/mapper/postgres/postgres_to_domain.gen.go
+      - internal/*/adapter/mapper/postgres/domain_to_postgres.gen.go
+    cmds:
+      - go generate ./internal/*/adapter/mapper/postgres/goverter.go
 
   openapi:
+    desc: Generate chi code from openapi spec
     sources:
       - api/*.yaml
       - internal/*/port/config/*.yaml
@@ -82,6 +80,7 @@ tasks:
       - go generate ./internal/*/port/http.go
 
   envdoc:
+    desc: Generate documentation for the environment variables
     sources:
       - internal/*/service/config.go
     generates:
