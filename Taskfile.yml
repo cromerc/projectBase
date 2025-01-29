@@ -2,7 +2,6 @@ version: '3'
 
 tasks:
   build:
-    internal: true
     desc: Develop the app
     sources:
       - 'cmd/**/*.go'
@@ -11,7 +10,7 @@ tasks:
       - serve
     deps: [ envdoc, openapi, map, format ]
     cmds:
-      - go build -gcflags="all=-N -l" -o serve ./cmd/serve/main.go
+      - go build -o serve ./cmd/serve/main.go
 
   run:
     desc: Run the app
