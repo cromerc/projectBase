@@ -16,12 +16,15 @@ func main() {
 	}
 
 	var cfg service.Config
-	err = env.Parse(&cfg)
+	opts := env.Options{
+		RequiredIfNoDef: true,
+	}
+	err = env.ParseWithOptions(&cfg, opts)
 	if err != nil {
 		panic(err)
 	}
 
-	cfg, err = env.ParseAs[service.Config]()
+	cfg, err = env.ParseAsWithOptions[service.Config](opts)
 	if err != nil {
 		panic(err)
 	}

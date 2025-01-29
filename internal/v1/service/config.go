@@ -6,16 +6,16 @@ type Config struct {
 }
 
 type Log struct {
-	Level  string `env:"LEVEL" envDefault:"debug"`
-	Pretty bool   `env:"PRETTY" envDefault:"true"`
+	Level  string `env:"LEVEL,required,notEmpty" envDefault:"debug"`
+	Pretty bool   `env:"PRETTY,required,notEmpty" envDefault:"true"`
 }
 
 type Database struct {
-	ReadHost  string `env:"READ_HOST" envDefault:"localhost"`
-	WriteHost string `env:"WRITE_HOST" envDefault:"localhost"`
-	Port      string `env:"PORT" envDefault:"5432"`
-	Username  string `env:"USERNAME" envDefault:"postgres"`
-	Password  string `env:"PASSWORD" envDefault:"postgres"`
-	Database  string `env:"DATABASE" envDefault:"postgres"`
-	Schema    string `env:"SCHEMA" envDefault:"public"`
+	ReadHost  string `env:"READ_HOST,required,notEmpty"`
+	WriteHost string `env:"WRITE_HOST,required,notEmpty"`
+	Port      string `env:"PORT,required,notEmpty"`
+	Username  string `env:"USERNAME,required,notEmpty"`
+	Password  string `env:"PASSWORD,required,notEmpty"`
+	Database  string `env:"DATABASE,required,notEmpty"`
+	Schema    string `env:"SCHEMA,required,notEmpty"`
 }
