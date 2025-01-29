@@ -9,7 +9,7 @@ tasks:
       - 'internal/**/*.go'
     generates:
       - serve
-    deps: [openapi, map, format]
+    deps: [ envdoc, openapi, map, format ]
     cmds:
       - go build -gcflags="all=-N -l" -o serve ./cmd/serve/main.go
 
@@ -26,7 +26,7 @@ tasks:
 
   debug:
     desc: Debug the app
-    deps: [openapi, map, format]
+    deps: [ envdoc, openapi, map, format ]
     interactive: true
     cmds:
       - go run -modfile=tools/go.mod github.com/cespare/reflex -r '(\.go$|go\.mod|go\.sum)' --decoration=none -s -- go run -modfile=tools/go.mod github.com/go-delve/delve/cmd/dlv debug --listen=:2345 --headless --disable-aslr --api-version=2 --accept-multiclient "./cmd/serve/main.go"
@@ -67,3 +67,11 @@ tasks:
       - internal/*/port/api/*.gen.go
     cmds:
       - go generate ./internal/*/port/http.go
+
+  envdoc:
+    sources:
+      - internal/*/service/config.go
+    generates:
+      - env.md
+    cmds:
+      - go generate ./internal/*/service/config.go
