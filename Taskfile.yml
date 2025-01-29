@@ -39,7 +39,7 @@ tasks:
       - 'cmd/**/*.go'
       - 'internal/**/*.go'
     cmds:
-      - go run -modfile=tools/go.mod mvdan.cc/gofumpt -l -w internal
+      - go run -modfile=tools/go.mod mvdan.cc/gofumpt -l -w cmd internal
 
   map:
     desc: Generate mappers
