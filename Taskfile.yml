@@ -31,14 +31,28 @@ tasks:
       - go run -modfile=tools/go.mod github.com/cespare/reflex -r '(\.go$|go\.mod|go\.sum)' --decoration=none -s -- go run -modfile=tools/go.mod github.com/go-delve/delve/cmd/dlv debug --listen=:2345 --headless --disable-aslr --api-version=2 --accept-multiclient "./cmd/serve/main.go"
 
   format:
+    desc: Format code in the project
+    deps: [ format-cmd, format-internal ]
+
+  format-cmd:
+    internal: true
+    desc: Format cmd code
     sources:
       - 'cmd/**/*.go'
-      - 'internal/**/*.go'
     generates:
       - 'cmd/**/*.go'
+    cmds:
+      - go run -modfile=tools/go.mod mvdan.cc/gofumpt -l -w cmd
+
+  format-internal:
+    internal: true
+    desc: Format internal code
+    sources:
+      - 'internal/**/*.go'
+    generates:
       - 'internal/**/*.go'
     cmds:
-      - go run -modfile=tools/go.mod mvdan.cc/gofumpt -l -w cmd internal
+      - go run -modfile=tools/go.mod mvdan.cc/gofumpt -l -w internal
 
   map:
     desc: Generate mappers
