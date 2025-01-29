@@ -20,10 +20,6 @@ func main() {
 	opts := env.Options{
 		RequiredIfNoDef: true,
 	}
-	err = env.ParseWithOptions(&cfg, opts)
-	if err != nil {
-		panic(err)
-	}
 
 	cfg, err = env.ParseAsWithOptions[service.Config](opts)
 	if err != nil {
