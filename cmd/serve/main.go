@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"os"
 
 	"github.com/caarlos0/env/v11"
 	"github.com/cromerc/projectBase/internal/v1/adapter/logger"
@@ -12,7 +14,8 @@ import (
 
 func main() {
 	err := godotenv.Load(".env")
-	if err != nil {
+	// If the file does not exist, continue since the environment variables might still be set
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		panic(err)
 	}
 
