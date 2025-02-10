@@ -49,11 +49,11 @@ tasks:
     internal: true
     desc: Generate a mapper for the api
     sources:
-      - internal/*/port/mapper/api/goverter.go
-      - internal/*/port/mapper/api/constructor.go
+      - 'internal/*/port/mapper/api/goverter.go'
+      - 'internal/*/port/mapper/api/constructor.go'
     generates:
-      - internal/*/port/mapper/api/api_to_domain.gen.go
-      - internal/*/port/mapper/api/domain_to_api.gen.go
+      - 'internal/*/port/mapper/api/api_to_domain.gen.go'
+      - 'internal/*/port/mapper/api/domain_to_api.gen.go'
     cmds:
       - go generate ./internal/*/port/mapper/api/goverter.go
 
@@ -61,29 +61,29 @@ tasks:
     internal: true
     desc: Generate a mapper for postgres
     sources:
-      - internal/*/adapter/mapper/postgres/goverter.go
-      - internal/*/adapter/mapper/postgres/constructor.go
+      - 'internal/*/adapter/mapper/postgres/goverter.go'
+      - 'internal/*/adapter/mapper/postgres/constructor.go'
     generates:
-      - internal/*/adapter/mapper/postgres/postgres_to_domain.gen.go
-      - internal/*/adapter/mapper/postgres/domain_to_postgres.gen.go
+      - 'internal/*/adapter/mapper/postgres/postgres_to_domain.gen.go'
+      - 'internal/*/adapter/mapper/postgres/domain_to_postgres.gen.go'
     cmds:
       - go generate ./internal/*/adapter/mapper/postgres/goverter.go
 
   openapi:
     desc: Generate chi code from openapi spec
     sources:
-      - api/*.yaml
-      - internal/*/port/config/*.yaml
+      - 'api/*.yaml'
+      - 'internal/*/port/config/*.yaml'
     generates:
-      - internal/*/port/api/*.gen.go
+      - 'internal/*/port/api/*.gen.go'
     cmds:
       - go generate ./internal/*/port/http.go
 
   envdoc:
     desc: Generate documentation for the environment variables
     sources:
-      - internal/*/service/config.go
+      - 'internal/*/service/config.go'
     generates:
-      - env.md
+      - 'env.md'
     cmds:
       - go generate ./internal/*/service/config.go
