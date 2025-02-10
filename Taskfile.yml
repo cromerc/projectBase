@@ -2,12 +2,12 @@ version: '3'
 
 tasks:
   build:
-    desc: Develop the app
+    desc: Build the binary
     sources:
       - 'cmd/**/*.go'
       - 'internal/**/*.go'
     generates:
-      - serve
+      - 'serve'
     deps: [ envdoc, openapi, map, format ]
     cmds:
       - go build -o serve ./cmd/serve/main.go
